@@ -8,7 +8,7 @@ import sys
 from ansible import errors
 from ansible.callbacks import vvv
 import ansible.constants as C
-import ansible.runner.connection_plugins.ssh as SSH
+from ansible.runner.connection_plugins.ssh import Connection as SSHConn
 
 class Connection(object):
     ''' jail-over-ssh based connections '''
@@ -33,7 +33,7 @@ class Connection(object):
         self.jailowner = jailowner
         self.runner = runner
         self.has_pipelining = False
-        self.ssh = SSH.Connection(runner, self.host, port, user, password, private_key_file, *args)
+        self.ssh = SSHConn(runner, self.host, port, user, password, private_key_file, *args)
 
     def connect(self, port=None):
         self.ssh.connect();
