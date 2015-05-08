@@ -23,6 +23,17 @@ Target jail:
 
 * Python 2.7
 
+# Installation
+
+This is a "Connection Type Plugin", as outlined in the [Ansible docs](http://docs.ansible.com/developing_plugins.html#connection-type-plugins).
+
+To install sshjail:
+
+1. Clone this repo.
+2. Copy or link `sshjail.py` to one of the supported locations:
+** `/usr/share/ansible/plugins/connection_plugins/sshjail.py`
+** `path/to/your/toplevelplaybook/connection_plugins/sshjail.py`
+
 # Usage
 
 Using sshjail, each jail is its own inventory host, identified with a host name of `jailname[:jailuser]@jailhost`. You must also specify `ansible_connection=sshjail`.
