@@ -31,8 +31,8 @@ To install sshjail:
 
 1. Clone this repo.
 2. Copy or link `sshjail.py` to one of the supported locations:
-** `/usr/share/ansible/plugins/connection_plugins/sshjail.py`
-** `path/to/your/toplevelplaybook/connection_plugins/sshjail.py`
+  * `/usr/share/ansible/plugins/connection_plugins/sshjail.py`
+  * `path/to/your/toplevelplaybook/connection_plugins/sshjail.py`
 
 # Usage
 
