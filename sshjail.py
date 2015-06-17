@@ -24,8 +24,8 @@ class Connection(object):
  
         
     def __init__(self, runner, host, port, user, password, private_key_file, *args, **kwargs):
-        self.orighost = host
-        jaildef, self.host = host.split('@',1)
+        self.host = host
+        jaildef, self.jailhost = host.split('@',1)
         jailowner = 'root'
         if ':' in jaildef:
             jaildef, jailowner = jaildef.split(':', 1)
@@ -33,7 +33,7 @@ class Connection(object):
         self.jailowner = jailowner
         self.runner = runner
         self.has_pipelining = False
-        self.ssh = SSHConn(runner, self.host, port, user, password, private_key_file, *args)
+        self.ssh = SSHConn(runner, self.jailhost, port, user, password, private_key_file, *args)
 
     def connect(self, port=None):
         self.ssh.connect();
@@ -52,7 +52,7 @@ class Connection(object):
         else:
             local_cmd = 'jexec "%s" "%s"' % (self.jname, cmd)
 
-        vvv("JAIL %s" % (local_cmd), host=self.orighost)
+        vvv("JAIL %s" % (local_cmd), host=self.host)
         return self._exec_command(local_cmd, tmp_path, become_user, True, executable, in_data)
 
     def _normalize_path(self, path, prefix):
