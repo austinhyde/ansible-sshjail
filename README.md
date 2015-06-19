@@ -8,7 +8,7 @@ This works by SSHing to the jail host using the standard Ansible SSH connection,
 
 Control node (your workstation or deployment server):
 
-* Ansible
+* Ansible 1.9+
 * Python 2.7
 
 Jailhost:
@@ -36,10 +36,9 @@ To install sshjail:
 
 # Usage
 
-Using sshjail, each jail is its own inventory host, identified with a host name of `jailname[:jailuser]@jailhost`. You must also specify `ansible_connection=sshjail`.
+Using sshjail, each jail is its own inventory host, identified with a host name of `jailname@jailhost`. You must also specify `ansible_connection=sshjail`.
 
 * `jailname` is the name of the jail. Typically jails are referred to by their hostname, like `my-db-jail`, but the actual name of the jail (by default) would be `my_db_jail`. sshjail will attempt to convert any non-word characters (`[^a-zA-Z0-9_]`) to underscores for the purposes of referring to jails by their actual name.
-* `jailuser` is a user that is allowed to drop into that jail. If not specified, this is assumed to be `root`.
 * `jailhost` is the hostname or IP address of the jailhost.
 
 Also note that FreeBSD pkgng places Python at `/usr/local/bin/python2.7` by default. Make sure to specify this with the `ansible_python_interpreter` variable!
@@ -65,12 +64,21 @@ Adding these hosts dynamically, like after freshly creating them via Ansible, or
             ansible_connection=sshjail
 ```
 
+## A note about privileges
+
+By default in FreeBSD, only root can do things inside jails. This means that when invoking `ansible` or `ansible-playbook`, you need to specify `--become`, and in a playbook, use `become: yes`/`become_method: sudo`. If sudo requires a password (shame on you if not, unless it's vagrant!), you'll need `--ask-become-pass` as well.
+
+This means any commands executed by sshjail roughly translate to `sudo jexec $jailName $command`.
+
+An alternative to requiring root access is to use the [`jailme`](http://www.freshports.org/sysutils/jailme) utility. `jailme` is "a setuid version of jexec to allow normal users access to FreeBSD jails".
+
+If you want to use `jailme`, you'll need to ensure it's installed on the jailhost, and specify the user to `sudo` as via `--become-user` on the command line, or `become_user: username` in a play or task. Finally, you need to edit `sshjail.py`, and set `SSHJAIL_USE_JAILME = True` at the top.
+
+This results in commands similar to `sudo -u $becomeUser jailme $jailId $command`.
+
 # Known Issues
 
-* Outside of a playbook (like via the `ansible` command), you must use the `-b` option to use remote-sudo
-* Inside of a playbook, it is very hard to read. Just kidding, you need `sudo: yes` for any tasks targeting jails
 * Fetching files hasn't been tested yet. It may not work.
-* Error handling within the plugin needs improved. At the moment, it appears that any permission issues are being reported with odd error messages. Use verbose output (`-vvvv`) and open an issue if you run into this!
 
 # Contributing
 
