@@ -16,16 +16,37 @@ class Connection(object):
     ''' jail-over-ssh based connections '''
 
     def get_jail_path(self):
-        code, _, stdout, stderr = self._exec_command(' '.join(['jls', '-j', self.jname, '-q', 'path']))
-        # remove \n
-        return stdout.strip().split('\n')[-1]
+        return self.path
 
     def get_jail_id(self):
-        if self.jid == None:
-            code, _, stdout, stderr = self._exec_command(' '.join(['jls', '-j', self.jname, '-q', 'jid']))
-            # remove \n
-            self.jid = stdout.strip().split('\n')[-1]
         return self.jid
+
+    def match_jail(self):
+        code, _, stdout, stderr = self._exec_command(' '.join(['jls', 'name', 'jid', 'path']))
+        lines = stdout.strip().split('\n')
+
+        lines = [ line.split() for line in lines ]
+
+        names = dict(
+            (re.sub(r'\W', '_', name), {
+                'name': name.strip(),
+                'jid': jid.strip(),
+                'path': path.strip(),
+            }) for name, jid, path in lines
+        )
+
+        if len(names) != len(lines):
+            vvv("WARNING: This host's jail names are not unique after underscore-substitution!")
+
+        # remove \n
+        jail = names.get(self.jname)
+        if jail:
+            self.jid = jail['jid']
+            self.path = jail['path']
+            self.jname = jail['name']
+            vvv('Matched jail: %s' % self.jname)
+        else:
+            vvv('No jail found with name: %s' % self.jname)
 
     def get_tmp_file(self):
         code, _, stdout, stderr = self._exec_command('mktemp', '', None)
@@ -40,10 +61,15 @@ class Connection(object):
         self.has_pipelining = False
         self.ssh = SSHConn(runner, self.jailhost, port, user, password, private_key_file, *args)
         self.jid = None
+        self.path = None
         self.juser = None
+        self.matched = False
 
     def connect(self, port=None):
-        self.ssh.connect();
+        self.ssh.connect()
+        if not self.matched:
+            self.match_jail()
+            self.matched = True
         return self
 
     def _exec_command(self, cmd, tmp_path='', become_user=None, sudoable=False, executable='/bin/sh', in_data=None):
@@ -58,7 +84,7 @@ class Connection(object):
         ''' run a command in the jail '''
 
         if SSHJAIL_USE_JAILME:
-            jcmd = ['jailme', self.get_jail_id()]
+            jcmd = ['jailme', self.jid]
         else:
             jcmd = ['jexec', self.jname]
 
