@@ -15,16 +15,34 @@ SSHJAIL_USE_JAILME = False
 class Connection(object):
     ''' jail-over-ssh based connections '''
 
+    def match_jail(self):
+        if self.jid == None:
+            code, _, stdout, stderr = self._exec_command("jls -q jid name host.hostname path")
+            if code != 0:
+                vvv("JLS stdout: %s" % stdout)
+                raise errors.AnsibleError("jls returned non-zero!")
+
+            lines = stdout.strip().split('\n')
+            found = False
+            for line in lines:
+                jid, name, hostname, path = line.strip().split()
+                if name == self.jailspec or hostname == self.jailspec:
+                    self.jid = jid
+                    self.jname = name
+                    self.jhost = hostname
+                    self.jpath = path
+                    found = True
+                    break
+
+            if not found:
+                raise errors.AnsibleError("failed to find a jail with name or hostname of '%s'" % self.jailspec)
+
     def get_jail_path(self):
-        code, _, stdout, stderr = self._exec_command(' '.join(['jls', '-j', self.jname, '-q', 'path']))
-        # remove \n
-        return stdout.strip().split('\n')[-1]
+        self.match_jail()
+        return self.jpath
 
     def get_jail_id(self):
-        if self.jid == None:
-            code, _, stdout, stderr = self._exec_command(' '.join(['jls', '-j', self.jname, '-q', 'jid']))
-            # remove \n
-            self.jid = stdout.strip().split('\n')[-1]
+        self.match_jail()
         return self.jid
 
     def get_tmp_file(self):
@@ -33,19 +51,29 @@ class Connection(object):
 
 
     def __init__(self, runner, host, port, user, password, private_key_file, *args, **kwargs):
+        # my-jail@my.jailhost => my-jail is jail name/hostname, my.jailhost is jailhost hostname
         self.host = host
-        jaildef, self.jailhost = host.split('@',1)
-        self.jname = re.sub(r'\W','_',jaildef)
+        self.jailspec, self.jailhost = host.split('@',1)
+
+        # piggyback off of the standard SSH connection
         self.runner = runner
         self.has_pipelining = False
         self.ssh = SSHConn(runner, self.jailhost, port, user, password, private_key_file, *args)
+
+        # jail information loaded on first use by match_jail
         self.jid = None
+        self.jname = None
+        self.jhost = None
+        self.jpath = None
+
+        # loaded after first exec_command
         self.juser = None
 
     def connect(self, port=None):
         self.ssh.connect();
         return self
 
+    # runs a command on the jailhost, rather than inside the jail
     def _exec_command(self, cmd, tmp_path='', become_user=None, sudoable=False, executable='/bin/sh', in_data=None):
         # oh lordy I hate this approach, but we need to note what user we use to access the jail so put/fetch works
         if become_user != None:
@@ -60,7 +88,7 @@ class Connection(object):
         if SSHJAIL_USE_JAILME:
             jcmd = ['jailme', self.get_jail_id()]
         else:
-            jcmd = ['jexec', self.jname]
+            jcmd = ['jexec', self.get_jail_id()]
 
         if executable:
             local_cmd = ' '.join([jcmd[0], jcmd[1], executable, '-c', '"%s"' % cmd])
