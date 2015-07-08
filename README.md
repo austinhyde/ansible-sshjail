@@ -36,10 +36,12 @@ To install sshjail:
 
 # Usage
 
-Using sshjail, each jail is its own inventory host, identified with a host name of `jailname@jailhost`. You must also specify `ansible_connection=sshjail`.
+Using sshjail, each jail is its own inventory host, identified with a host name of `jail@jailhost`. You must also specify `ansible_connection=sshjail`.
 
-* `jailname` is the name of the jail. Typically jails are referred to by their hostname, like `my-db-jail`, but the actual name of the jail (by default) would be `my_db_jail`. sshjail will attempt to convert any non-word characters (`[^a-zA-Z0-9_]`) to underscores for the purposes of referring to jails by their actual name.
+* `jail` is the name or hostname of the jail.
 * `jailhost` is the hostname or IP address of the jailhost.
+
+Keep in mind that `ezjail` encourages creating jails with their hostname, which implicitly names the jail with underscores substituted for dashes and dots. For example, a jail created with `ezjail-admin create test-jail 'em1|192.168.33.20'`, will have hostname `test-jail` and jail name `test_jail`. sshjail will accept either name in the ansible host specification.
 
 Also note that FreeBSD pkgng places Python at `/usr/local/bin/python2.7` by default. Make sure to specify this with the `ansible_python_interpreter` variable!
 
