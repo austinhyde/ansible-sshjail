@@ -66,19 +66,12 @@ class Connection(object):
         self.jhost = None
         self.jpath = None
 
-        # loaded after first exec_command
-        self.juser = None
-
     def connect(self, port=None):
         self.ssh.connect();
         return self
 
     # runs a command on the jailhost, rather than inside the jail
     def _exec_command(self, cmd, tmp_path='', become_user=None, sudoable=False, executable='/bin/sh', in_data=None):
-        # oh lordy I hate this approach, but we need to note what user we use to access the jail so put/fetch works
-        if become_user != None:
-            self.juser = become_user
-
         return self.ssh.exec_command(cmd, tmp_path, become_user, sudoable, executable, in_data)
 
 
@@ -110,13 +103,17 @@ class Connection(object):
         self.ssh.put_file(in_path, tmp)
         out_path = self._normalize_path(out_path, self.get_jail_path())
 
-        code, _, stdout, stderr = self._exec_command(' '.join(['chmod 0777',tmp]))
+        code, _, stdout, stderr = self._exec_command(' '.join(['chmod 0644',tmp]))
         if code != 0:
-            raise errors.AnsibleError("failed to make temp file %s world writable:\n%s\n%s" % (tmp, stdout, stderr))
+            raise errors.AnsibleError("failed to make temp file %s world readable:\n%s\n%s" % (tmp, stdout, stderr))
 
-        code, _, stdout, stderr = self._exec_command(' '.join(['cp',tmp,out_path]), '', self.juser, True)
+        code, _, stdout, stderr = self._exec_command(' '.join(['cp',tmp,out_path]), '', self.runner.become_user, True)
         if code != 0:
             raise errors.AnsibleError("failed to move file from %s to %s:\n%s\n%s" % (tmp, out_path, stdout, stderr))
+
+        code, _, stdout, stderr = self._exec_command(' '.join(['rm',tmp]))
+        if code != 0:
+            raise errors.AnsibleError("failed to remove temp file %s:\n%s\n%s" % (tmp, stdout, stderr))
 
     def fetch_file(self, in_path, out_path):
         ''' fetch a file from remote jail to local '''
