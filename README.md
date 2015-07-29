@@ -68,15 +68,22 @@ Adding these hosts dynamically, like after freshly creating them via Ansible, or
 
 ## A note about privileges
 
-By default in FreeBSD, only root can do things inside jails. This means that when invoking `ansible` or `ansible-playbook`, you need to specify `--become`, and in a playbook, use `become: yes`/`become_method: sudo`. If sudo requires a password (shame on you if not, unless it's vagrant!), you'll need `--ask-become-pass` as well.
+By default in FreeBSD, only root can enter jails. This means that when invoking `ansible` or `ansible-playbook`,
+you need to specify `--become`, and in a playbook, use `become: yes`/`become_method: sudo`. If sudo requires a password
+(shame on you if not, unless it's vagrant!), you'll need `--ask-become-pass` as well.
 
 This means any commands executed by sshjail roughly translate to `sudo jexec $jailName $command`.
 
-An alternative to requiring root access is to use the [`jailme`](http://www.freshports.org/sysutils/jailme) utility. `jailme` is "a setuid version of jexec to allow normal users access to FreeBSD jails".
+An alternative to requiring root access is to use the [`jailme`](http://www.freshports.org/sysutils/jailme) utility.
+`jailme` is "a setuid version of jexec to allow normal users access to FreeBSD jails".
 
-If you want to use `jailme`, you'll need to ensure it's installed on the jailhost, and specify the user to `sudo` as via `--become-user` on the command line, or `become_user: username` in a play or task. Finally, you need to edit `sshjail.py`, and set `SSHJAIL_USE_JAILME = True` at the top.
+If you want to use `jailme`, you'll need to ensure it's installed on the jailhost, and specify the user to `sudo` as
+via `--become-user` on the command line, or `become_user: username` in a play or task. sshjail will prefer to use `jailme`
+if it's installed, whether you are sudoing as root or not.
 
 This results in commands similar to `sudo -u $becomeUser jailme $jailId $command`.
+
+Because of limitations of Ansible, this plugin cannot really do things like `sudo jexec sudo -u myuser $command`
 
 # Known Issues
 
