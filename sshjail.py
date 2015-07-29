@@ -10,8 +10,6 @@ from ansible.callbacks import vvv
 import ansible.constants as C
 from ansible.runner.connection_plugins.ssh import Connection as SSHConn
 
-SSHJAIL_USE_JAILME = False
-
 class Connection(object):
     ''' jail-over-ssh based connections '''
 
@@ -78,15 +76,13 @@ class Connection(object):
     def exec_command(self, cmd, tmp_path, become_user=None, sudoable=False, executable='/bin/sh', in_data=None):
         ''' run a command in the jail '''
 
-        if SSHJAIL_USE_JAILME:
-            jcmd = ['jailme', self.get_jail_id()]
-        else:
-            jcmd = ['jexec', self.get_jail_id()]
-
         if executable:
-            local_cmd = ' '.join([jcmd[0], jcmd[1], executable, '-c', '"%s"' % cmd])
-        else:
-            local_cmd = '%s "%s" "%s"' % (jcmd[0], jcmd[1], cmd)
+            cmd = ' '.join([executable, '-c', '"%s"' % cmd])
+
+        local_cmd = 'which -s jailme && jailme %s %s || jexec %s %s' % (
+            self.get_jail_id(), cmd,
+            self.get_jail_id(), cmd
+        )
 
         vvv("JAIL (%s) %s" % (become_user, local_cmd), host=self.host)
         return self._exec_command(local_cmd, tmp_path, become_user, True, executable, in_data)
