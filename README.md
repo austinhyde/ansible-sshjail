@@ -1,5 +1,7 @@
 # ansible-sshjail
 
+[![GitHub release](https://img.shields.io/github/release/austinhyde/ansible-sshjail.svg?style=flat-square)](https://github.com/austinhyde/ansible-sshjail/releases)
+
 An Ansible connection plugin for remotely provisioning FreeBSD jails separately from their jailhost.
 
 This works by SSHing to the jail host using the standard Ansible SSH connection, moving any files into the jail directory, and using jexec to execute commands in the scope of the jail.
