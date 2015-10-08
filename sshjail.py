@@ -23,6 +23,9 @@ class Connection(object):
             lines = stdout.strip().split('\n')
             found = False
             for line in lines:
+                if line.strip() == '':
+                    break
+
                 jid, name, hostname, path = line.strip().split()
                 if name == self.jailspec or hostname == self.jailspec:
                     self.jid = jid
