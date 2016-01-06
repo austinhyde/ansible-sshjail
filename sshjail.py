@@ -47,6 +47,8 @@ class Connection(ConnectionBase):
         self.jpath = None
         self.connector = None
 
+        # logging.warning(self._play_context.connection)
+
     def match_jail(self):
         if self.jid == None:
             code, stdout, _ = self._exec_command("jls -q jid name host.hostname path")
@@ -88,6 +90,10 @@ class Connection(ConnectionBase):
             else:
               self.connector = 'jailme'
         return self.connector
+
+    def get_tmp_file(self):
+        _, stdout, _ = self._exec_command('mktemp', '', None)
+        return stdout.strip().split('\n')[-1]
 
     # The connection is created by running ssh/scp/sftp from the exec_command,
     # put_file, and fetch_file methods, so we don't need to do any connection
@@ -615,17 +621,14 @@ class Connection(ConnectionBase):
         ''' run a command in the jail '''
 
         if executable:
-            cmd = ' '.join([executable, '-c', '"%s"' % cmd])
+            cmd = ' '.join([executable, '-c', "'%s'" % cmd])
 
-        cmd = 'which -s jailme && jailme %s %s || jexec %s %s' % (
-            self.get_jail_id(), cmd,
-            self.get_jail_id(), cmd
-        )
+        cmd = '%s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd)
 
         if self._play_context.become:
             # display.debug("_low_level_execute_command(): using become for this command")
             cmd = self._play_context.make_become_cmd(cmd)
-
+            
         logging.warning(cmd)
 
         #display.vvv("JAIL (%s) %s" % (local_cmd), host=self.host)
@@ -678,10 +681,18 @@ class Connection(ConnectionBase):
     #
     #     return return_tuple
 
-    def put_file(self, in_path, out_path):
-        ''' transfer a file from local to remote '''
+    def _normalize_path(self, path, prefix):
+        if not path.startswith(os.path.sep):
+            path = os.path.join(os.path.sep, path)
+        normpath = os.path.normpath(path)
+        return os.path.join(prefix, normpath[1:])
 
+    def put_file(self, in_path, out_path):
+        ''' transfer a file from local to remote jail '''
         super(Connection, self).put_file(in_path, out_path)
+
+        tmp = self.get_tmp_file()
+        # self.ssh.put_file(in_path, tmp)
 
         display.vvv("PUT {0} TO {1}".format(in_path, out_path), host=self.host)
         if not os.path.exists(in_path):
@@ -689,20 +700,71 @@ class Connection(ConnectionBase):
 
         # scp and sftp require square brackets for IPv6 addresses, but
         # accept them for hostnames and IPv4 addresses too.
-        host = '[%s]' % self.host
+        host = '[%s]' % self.jailhost
 
         if C.DEFAULT_SCP_IF_SSH:
-            cmd = self._build_command('scp', in_path, '{0}:{1}'.format(host, pipes.quote(out_path)))
+            cmd = self._build_command('scp', in_path, '{0}:{1}'.format(host, pipes.quote(tmp)))
             in_data = None
         else:
             cmd = self._build_command('sftp', host)
-            in_data = "put {0} {1}\n".format(pipes.quote(in_path), pipes.quote(out_path))
+            in_data = "put {0} {1}\n".format(pipes.quote(in_path), pipes.quote(tmp))
 
         (returncode, stdout, stderr) = self._run(cmd, in_data)
 
         if returncode != 0:
-            raise AnsibleError("failed to transfer file to {0}:\n{1}\n{2}".format(out_path, stdout, stderr))
+            raise AnsibleError("failed to transfer file to {0}:\n{1}\n{2}".format(tmp, stdout, stderr))
 
+        out_path = self._normalize_path(out_path, self.get_jail_path())
+
+        code, stdout, stderr = self._exec_command(' '.join(['chmod 0644',tmp]))
+        if code != 0:
+           raise AnsibleError("failed to make temp file %s world readable:\n%s\n%s" % (tmp, stdout, stderr))
+
+        if self._play_context.become:
+            # display.debug("_low_level_execute_command(): using become for this command")
+            copycmd = self._play_context.make_become_cmd(' '.join(['cp',tmp,out_path]))
+
+        code, stdout, stderr = self._exec_command(copycmd, None, True)
+        if code != 0:
+            raise AnsibleError("failed to move file from %s to %s:\n%s\n%s" % (tmp, out_path, stdout, stderr))
+
+        code, stdout, stderr = self._exec_command(' '.join(['rm',tmp]))
+        if code != 0:
+            raise AnsibleError("failed to remove temp file %s:\n%s\n%s" % (tmp, stdout, stderr))
+
+    # def fetch_file(self, in_path, out_path):
+    #     ''' fetch a file from remote jail to local '''
+    #     tmp = self.get_tmp_file()
+    #     in_path = self._normalize_path(in_path, self.get_jail_path())
+    #     self._exec_command(' '.join(['mv',in_path,tmp]), '', self.juser, True)
+    #     self.ssh.fetch_file(tmp, out_path)
+
+
+    # def put_file(self, in_path, out_path):
+    #     ''' transfer a file from local to remote '''
+    #
+    #     super(Connection, self).put_file(in_path, out_path)
+    #
+    #     display.vvv("PUT {0} TO {1}".format(in_path, out_path), host=self.host)
+    #     if not os.path.exists(in_path):
+    #         raise AnsibleFileNotFound("file or module does not exist: {0}".format(in_path))
+    #
+    #     # scp and sftp require square brackets for IPv6 addresses, but
+    #     # accept them for hostnames and IPv4 addresses too.
+    #     host = '[%s]' % self.host
+    #
+    #     if C.DEFAULT_SCP_IF_SSH:
+    #         cmd = self._build_command('scp', in_path, '{0}:{1}'.format(host, pipes.quote(out_path)))
+    #         in_data = None
+    #     else:
+    #         cmd = self._build_command('sftp', host)
+    #         in_data = "put {0} {1}\n".format(pipes.quote(in_path), pipes.quote(out_path))
+    #
+    #     (returncode, stdout, stderr) = self._run(cmd, in_data)
+    #
+    #     if returncode != 0:
+    #         raise AnsibleError("failed to transfer file to {0}:\n{1}\n{2}".format(out_path, stdout, stderr))
+    #
     def fetch_file(self, in_path, out_path):
         ''' fetch a file from remote to local '''
 
