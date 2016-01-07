@@ -9,7 +9,6 @@ import select
 import shlex
 import subprocess
 import time
-import logging
 
 from ansible import constants as C
 from ansible.errors import AnsibleError, AnsibleConnectionFailure, AnsibleFileNotFound
@@ -631,15 +630,11 @@ class Connection(ConnectionBase):
     def exec_command(self, cmd, in_data=None, executable='/bin/sh', sudoable=True):
         ''' run a command in the jail '''
 
-        #logging.warning(cmd)
-
         if 'sudo' in cmd:
             cmd = self._strip_sudo(executable, cmd)
             cmd = ' '.join([executable, '-c', pipes.quote(cmd)])
         else:
             cmd = ' '.join([executable, '-c', pipes.quote(cmd)])
-
-        #logging.warning(cmd)
 
         cmd = '%s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd)
 
@@ -649,53 +644,6 @@ class Connection(ConnectionBase):
 
         #display.vvv("JAIL (%s) %s" % (local_cmd), host=self.host)
         return self._exec_command(cmd, in_data, True)
-
-
-    # Main public methods
-
-    # def exec_command(self, *args, **kwargs):
-    #     """
-    #     Wrapper around _exec_command to retry in the case of an ssh failure
-    #
-    #     Will retry if:
-    #     * an exception is caught
-    #     * ssh returns 255
-    #     Will not retry if
-    #     * remaining_tries is <2
-    #     * retries limit reached
-    #     """
-    #
-    #     remaining_tries = int(C.ANSIBLE_SSH_RETRIES) + 1
-    #     cmd_summary = "%s..." % args[0]
-    #     for attempt in xrange(remaining_tries):
-    #         try:
-    #             return_tuple = self._exec_command(*args, **kwargs)
-    #             # 0 = success
-    #             # 1-254 = remote command return code
-    #             # 255 = failure from the ssh command itself
-    #             if return_tuple[0] != 255 or attempt == (remaining_tries - 1):
-    #                 break
-    #             else:
-    #                 raise AnsibleConnectionFailure("Failed to connect to the host via ssh.")
-    #         except (AnsibleConnectionFailure, Exception) as e:
-    #             if attempt == remaining_tries - 1:
-    #                 raise
-    #             else:
-    #                 pause = 2 ** attempt - 1
-    #                 if pause > 30:
-    #                     pause = 30
-    #
-    #                 if isinstance(e, AnsibleConnectionFailure):
-    #                     msg = "ssh_retry: attempt: %d, ssh return code is 255. cmd (%s), pausing for %d seconds" % (attempt, cmd_summary, pause)
-    #                 else:
-    #                     msg = "ssh_retry: attempt: %d, caught exception(%s) from cmd (%s), pausing for %d seconds" % (attempt, e, cmd_summary, pause)
-    #
-    #                 display.vv(msg)
-    #
-    #                 time.sleep(pause)
-    #                 continue
-    #
-    #     return return_tuple
 
     def _normalize_path(self, path, prefix):
         if not path.startswith(os.path.sep):
@@ -748,61 +696,44 @@ class Connection(ConnectionBase):
         if code != 0:
             raise AnsibleError("failed to remove temp file %s:\n%s\n%s" % (tmp, stdout, stderr))
 
-    # def fetch_file(self, in_path, out_path):
-    #     ''' fetch a file from remote jail to local '''
-    #     tmp = self.get_tmp_file()
-    #     in_path = self._normalize_path(in_path, self.get_jail_path())
-    #     self._exec_command(' '.join(['mv',in_path,tmp]), '', self.juser, True)
-    #     self.ssh.fetch_file(tmp, out_path)
-
-
-    # def put_file(self, in_path, out_path):
-    #     ''' transfer a file from local to remote '''
-    #
-    #     super(Connection, self).put_file(in_path, out_path)
-    #
-    #     display.vvv("PUT {0} TO {1}".format(in_path, out_path), host=self.host)
-    #     if not os.path.exists(in_path):
-    #         raise AnsibleFileNotFound("file or module does not exist: {0}".format(in_path))
-    #
-    #     # scp and sftp require square brackets for IPv6 addresses, but
-    #     # accept them for hostnames and IPv4 addresses too.
-    #     host = '[%s]' % self.host
-    #
-    #     if C.DEFAULT_SCP_IF_SSH:
-    #         cmd = self._build_command('scp', in_path, '{0}:{1}'.format(host, pipes.quote(out_path)))
-    #         in_data = None
-    #     else:
-    #         cmd = self._build_command('sftp', host)
-    #         in_data = "put {0} {1}\n".format(pipes.quote(in_path), pipes.quote(out_path))
-    #
-    #     (returncode, stdout, stderr) = self._run(cmd, in_data)
-    #
-    #     if returncode != 0:
-    #         raise AnsibleError("failed to transfer file to {0}:\n{1}\n{2}".format(out_path, stdout, stderr))
-    #
     def fetch_file(self, in_path, out_path):
         ''' fetch a file from remote to local '''
 
         super(Connection, self).fetch_file(in_path, out_path)
 
+        tmp = self.get_tmp_file()
+
+        in_path = self._normalize_path(in_path, self.get_jail_path())
+
         display.vvv("FETCH {0} TO {1}".format(in_path, out_path), host=self.host)
 
         # scp and sftp require square brackets for IPv6 addresses, but
         # accept them for hostnames and IPv4 addresses too.
-        host = '[%s]' % self.host
+        host = '[%s]' % self.jailhost
 
         if C.DEFAULT_SCP_IF_SSH:
-            cmd = self._build_command('scp', '{0}:{1}'.format(host, pipes.quote(in_path)), out_path)
+            cmd = self._build_command('scp', '{0}:{1}'.format(host, pipes.quote(in_path)), tmp)
             in_data = None
         else:
             cmd = self._build_command('sftp', host)
-            in_data = "get {0} {1}\n".format(pipes.quote(in_path), pipes.quote(out_path))
+            in_data = "get {0} {1}\n".format(pipes.quote(in_path), pipes.quote(tmp))
 
         (returncode, stdout, stderr) = self._run(cmd, in_data)
 
         if returncode != 0:
             raise AnsibleError("failed to transfer file from {0}:\n{1}\n{2}".format(in_path, stdout, stderr))
+
+        if C.DEFAULT_SCP_IF_SSH:
+            cmd = self._build_command('scp', '{0}:{1}'.format(host, pipes.quote(tmp)), out_path)
+            in_data = None
+        else:
+            cmd = self._build_command('sftp', host)
+            in_data = "get {0} {1}\n".format(pipes.quote(tmp), pipes.quote(out_path))
+
+        (returncode, stdout, stderr) = self._run(cmd, in_data)
+
+        if returncode != 0:
+            raise AnsibleError("failed to transfer file from {0}:\n{1}\n{2}".format(tmp, stdout, stderr))
 
     def close(self):
         # If we have a persistent ssh connection (ControlPersist), we can ask it

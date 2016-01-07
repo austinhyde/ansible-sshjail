@@ -10,7 +10,7 @@ This works by SSHing to the jail host using the standard Ansible SSH connection,
 
 Control node (your workstation or deployment server):
 
-* Ansible 1.9+
+* Ansible 2.0 RC3+
 * Python 2.7
 
 Jailhost:
