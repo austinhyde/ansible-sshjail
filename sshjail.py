@@ -596,6 +596,17 @@ class Connection(ConnectionBase):
 
         return (p.returncode, stdout, stderr)
 
+    def _strip_sudo(self, executable, cmd):
+        # Get the command without sudo
+        sudoless = cmd.rsplit(executable + ' -c ', 1)[1]
+        # Get the quotes
+        quotes = sudoless.partition('echo') [0]
+        # Get the string between the quotes
+        cmd = sudoless[len(quotes):-len(quotes+'?')]
+        # Drop the first command becasue we don't need it
+        cmd = cmd.split('; ', 1)[1]
+        return cmd
+
     def _exec_command(self, cmd, in_data=None, sudoable=True):
         ''' run a command on the remote host '''
 
@@ -620,16 +631,21 @@ class Connection(ConnectionBase):
     def exec_command(self, cmd, in_data=None, executable='/bin/sh', sudoable=True):
         ''' run a command in the jail '''
 
-        if executable:
-            cmd = ' '.join([executable, '-c', "'%s'" % cmd])
+        #logging.warning(cmd)
+
+        if 'sudo' in cmd:
+            cmd = self._strip_sudo(executable, cmd)
+            cmd = ' '.join([executable, '-c', pipes.quote(cmd)])
+        else:
+            cmd = ' '.join([executable, '-c', pipes.quote(cmd)])
+
+        #logging.warning(cmd)
 
         cmd = '%s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd)
 
         if self._play_context.become:
             # display.debug("_low_level_execute_command(): using become for this command")
             cmd = self._play_context.make_become_cmd(cmd)
-            
-        logging.warning(cmd)
 
         #display.vvv("JAIL (%s) %s" % (local_cmd), host=self.host)
         return self._exec_command(cmd, in_data, True)
