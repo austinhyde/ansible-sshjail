@@ -1,5 +1,4 @@
 from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
 
 import os
 import pipes
@@ -7,6 +6,8 @@ import pipes
 from ansible.errors import AnsibleError
 from ansible.plugins.connection.ssh import Connection as SSHConnection
 from contextlib import contextmanager
+
+__metaclass__ = type
 
 try:
     from __main__ import display
@@ -42,8 +43,8 @@ class Connection(ConnectionBase):
         # logging.warning(self._play_context.connection)
 
     def match_jail(self):
-        if self.jid == None:
-            code, stdout, _ = self._jailhost_command("jls -q jid name host.hostname path")
+        if self.jid is None:
+            code, stdout, stderr = self._jailhost_command("jls -q jid name host.hostname path")
             if code != 0:
                 display.vvv("JLS stdout: %s" % stdout)
                 raise AnsibleError("jls returned non-zero!")
@@ -74,12 +75,12 @@ class Connection(ConnectionBase):
         return self.jid
 
     def get_jail_connector(self):
-        if self.connector == None:
-            code, _, _= self._jailhost_command("which -s jailme")
+        if self.connector is None:
+            code, _, _ = self._jailhost_command("which -s jailme")
             if code != 0:
-              self.connector = 'jexec'
+                self.connector = 'jexec'
             else:
-              self.connector = 'jailme'
+                self.connector = 'jailme'
         return self.connector
 
     def _strip_sudo(self, executable, cmd):
@@ -109,7 +110,7 @@ class Connection(ConnectionBase):
             # display.debug("_low_level_execute_command(): using become for this command")
             cmd = self._play_context.make_become_cmd(cmd)
 
-        #display.vvv("JAIL (%s) %s" % (local_cmd), host=self.host)
+        # display.vvv("JAIL (%s) %s" % (local_cmd), host=self.host)
         return super(Connection, self).exec_command(cmd, in_data, True)
 
     def _normalize_path(self, path, prefix):
@@ -121,7 +122,7 @@ class Connection(ConnectionBase):
     def _copy_file(self, from_file, to_file):
         if self._play_context.become:
             # display.debug("_low_level_execute_command(): using become for this command")
-            copycmd = self._play_context.make_become_cmd(' '.join(['cp',from_file,to_file]))
+            copycmd = self._play_context.make_become_cmd(' '.join(['cp', from_file, to_file]))
 
         display.vvv(u"REMOTE COPY {0} TO {1}".format(from_file, to_file), host=self.inventory_hostname)
         code, stdout, stderr = self._jailhost_command(copycmd)
@@ -132,16 +133,16 @@ class Connection(ConnectionBase):
     def tempfile(self):
         code, stdout, stderr = self._jailhost_command('mktemp')
         if code != 0:
-           raise AnsibleError("failed to make temp file:\n%s\n%s" % (stdout, stderr))
+            raise AnsibleError("failed to make temp file:\n%s\n%s" % (stdout, stderr))
         tmp = stdout.strip().split('\n')[-1]
 
-        code, stdout, stderr = self._jailhost_command(' '.join(['chmod 0644',tmp]))
+        code, stdout, stderr = self._jailhost_command(' '.join(['chmod 0644', tmp]))
         if code != 0:
-           raise AnsibleError("failed to make temp file %s world readable:\n%s\n%s" % (tmp, stdout, stderr))
+            raise AnsibleError("failed to make temp file %s world readable:\n%s\n%s" % (tmp, stdout, stderr))
 
         yield tmp
 
-        code, stdout, stderr = self._jailhost_command(' '.join(['rm',tmp]))
+        code, stdout, stderr = self._jailhost_command(' '.join(['rm', tmp]))
         if code != 0:
             raise AnsibleError("failed to remove temp file %s:\n%s\n%s" % (tmp, stdout, stderr))
 
@@ -150,9 +151,8 @@ class Connection(ConnectionBase):
         out_path = self._normalize_path(out_path, self.get_jail_path())
 
         with self.tempfile() as tmp:
-            super(Connection, self).put_file(in_path, tmp);
+            super(Connection, self).put_file(in_path, tmp)
             self._copy_file(tmp, out_path)
-
 
     def fetch_file(self, in_path, out_path):
         ''' fetch a file from remote to local '''
@@ -161,4 +161,3 @@ class Connection(ConnectionBase):
         with self.tempfile() as tmp:
             self._copy_file(in_path, tmp)
             super(Connection, self).fetch_file(tmp, out_path)
-        
