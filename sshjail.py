@@ -14,7 +14,12 @@ except ImportError:
     from ansible.utils.display import Display
     display = Display()
 
-class Connection(SSHConnection):
+
+class ConnectionBase(SSHConnection):
+    pass
+
+
+class Connection(ConnectionBase):
     ''' ssh based connections '''
 
     transport = 'sshjail'
