@@ -93,18 +93,33 @@ class Connection(ConnectionBase):
         # Drop the first command becasue we don't need it
         cmd = cmd.split('; ', 1)[1]
         return cmd
+        
+    def _strip_sleep(self, cmd):        
+        # Get the command without sleep
+        cmd = cmd.split(' && sleep 0', 1)[0]
+        # Add back trailing quote
+        cmd = '%s%s' % (cmd, "'")
+        return cmd
 
     def _jailhost_command(self, cmd):
         return super(Connection, self).exec_command(cmd, in_data=None, sudoable=True)
 
     def exec_command(self, cmd, in_data=None, executable='/bin/sh', sudoable=True):
+        slpcmd = ''
         ''' run a command in the jail '''
+
+        if '&& sleep 0' in cmd:
+            slpcmd = True
+            cmd = self._strip_sleep(cmd)
 
         if 'sudo' in cmd:
             cmd = self._strip_sudo(executable, cmd)
 
         cmd = ' '.join([executable, '-c', pipes.quote(cmd)])
-        cmd = '%s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd)
+        if slpcmd == True:
+            cmd = '%s %s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd, '&& sleep 0')
+        else:
+            cmd = '%s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd)
 
         if self._play_context.become:
             # display.debug("_low_level_execute_command(): using become for this command")
