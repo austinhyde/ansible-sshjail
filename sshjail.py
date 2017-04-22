@@ -16,6 +16,8 @@ except ImportError:
     display = Display()
 
 
+# HACK: Ansible core does classname-based validation checks, to ensure connection plugins inherit directly from a class
+# named "ConnectionBase". This intermediate class works around this limitation.
 class ConnectionBase(SSHConnection):
     pass
 
@@ -93,8 +95,8 @@ class Connection(ConnectionBase):
         # Drop the first command becasue we don't need it
         cmd = cmd.split('; ', 1)[1]
         return cmd
-        
-    def _strip_sleep(self, cmd):        
+
+    def _strip_sleep(self, cmd):
         # Get the command without sleep
         cmd = cmd.split(' && sleep 0', 1)[0]
         # Add back trailing quote
@@ -105,8 +107,8 @@ class Connection(ConnectionBase):
         return super(Connection, self).exec_command(cmd, in_data=None, sudoable=True)
 
     def exec_command(self, cmd, in_data=None, executable='/bin/sh', sudoable=True):
-        slpcmd = ''
         ''' run a command in the jail '''
+        slpcmd = False
 
         if '&& sleep 0' in cmd:
             slpcmd = True
@@ -116,7 +118,7 @@ class Connection(ConnectionBase):
             cmd = self._strip_sudo(executable, cmd)
 
         cmd = ' '.join([executable, '-c', pipes.quote(cmd)])
-        if slpcmd == True:
+        if slpcmd:
             cmd = '%s %s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd, '&& sleep 0')
         else:
             cmd = '%s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd)
