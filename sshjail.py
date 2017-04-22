@@ -135,9 +135,7 @@ class Connection(ConnectionBase):
         return os.path.join(prefix, normpath[1:])
 
     def _copy_file(self, from_file, to_file):
-        if self._play_context.become:
-            # display.debug("_low_level_execute_command(): using become for this command")
-            copycmd = self._play_context.make_become_cmd(' '.join(['cp', from_file, to_file]))
+        copycmd = self._play_context.make_become_cmd(' '.join(['cp', from_file, to_file]))
 
         display.vvv(u"REMOTE COPY {0} TO {1}".format(from_file, to_file), host=self.inventory_hostname)
         code, stdout, stderr = self._jailhost_command(copycmd)
