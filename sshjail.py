@@ -345,7 +345,7 @@ class Connection(ConnectionBase):
         display.vvv(u"REMOTE COPY {0} TO {1}".format(from_file, to_file), host=self.inventory_hostname)
         code, stdout, stderr = self._jailhost_command(copycmd)
         if code != 0:
-            raise AnsibleError("failed to move file from %s to %s:\n%s\n%s" % (from_file, to_file, stdout, stderr))
+            raise AnsibleError("failed to copy file from %s to %s:\n%s\n%s" % (from_file, to_file, stdout, stderr))
 
     @contextmanager
     def tempfile(self):
