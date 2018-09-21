@@ -254,7 +254,7 @@ class Connection(ConnectionBase):
                 display.vvv("JLS stdout: %s" % stdout)
                 raise AnsibleError("jls returned non-zero!")
 
-            lines = stdout.strip().split('\n')
+            lines = stdout.strip().split(b'\n')
             found = False
             for line in lines:
                 if line.strip() == '':
@@ -352,7 +352,7 @@ class Connection(ConnectionBase):
         code, stdout, stderr = self._jailhost_command('mktemp')
         if code != 0:
             raise AnsibleError("failed to make temp file:\n%s\n%s" % (stdout, stderr))
-        tmp = stdout.strip().split('\n')[-1]
+        tmp = stdout.strip().split(b'\n')[-1]
 
         code, stdout, stderr = self._jailhost_command(' '.join(['chmod 0644', tmp]))
         if code != 0:
