@@ -5,6 +5,7 @@ import pipes
 
 from ansible.errors import AnsibleError
 from ansible.plugins.connection.ssh import Connection as SSHConnection
+from ansible.module_utils._text import to_text
 from contextlib import contextmanager
 
 __metaclass__ = type
@@ -260,7 +261,7 @@ class Connection(ConnectionBase):
                 if line.strip() == '':
                     break
 
-                jid, name, hostname, path = line.strip().split()
+                jid, name, hostname, path = to_text(line).strip().split()
                 if name == self.jailspec or hostname == self.jailspec:
                     self.jid = jid
                     self.jname = name
@@ -352,7 +353,7 @@ class Connection(ConnectionBase):
         code, stdout, stderr = self._jailhost_command('mktemp')
         if code != 0:
             raise AnsibleError("failed to make temp file:\n%s\n%s" % (stdout, stderr))
-        tmp = stdout.strip().split(b'\n')[-1]
+        tmp = to_text(stdout.strip().split(b'\n')[-1])
 
         code, stdout, stderr = self._jailhost_command(' '.join(['chmod 0644', tmp]))
         if code != 0:
