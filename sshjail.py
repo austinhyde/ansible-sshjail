@@ -1,3 +1,4 @@
+# Copyright (c) 2015-2018, Austin Hyde (@austinhyde)
 from __future__ import (absolute_import, division, print_function)
 
 import os
@@ -55,14 +56,24 @@ DOCUMENTATION = '''
                 key: 'ssh_args'
           env:
               - name: ANSIBLE_SSH_ARGS
+          vars:
+              - name: ansible_ssh_args
+                version_added: '2.7'
       ssh_common_args:
           description: Common extra args for all ssh CLI tools
+          ini:
+              - section: 'ssh_connection'
+                key: 'ssh_common_args'
+                version_added: '2.7'
+          env:
+              - name: ANSIBLE_SSH_COMMON_ARGS
+                version_added: '2.7'
           vars:
               - name: ansible_ssh_common_args
       ssh_executable:
           default: ssh
           description:
-            - This defines the location of the ssh binary. It defaults to `ssh` which will use the first ssh binary available in $PATH.
+            - This defines the location of the ssh binary. It defaults to ``ssh`` which will use the first ssh binary available in $PATH.
             - This option is usually not required, it might be useful when access to system ssh is restricted,
               or when using ssh wrappers to connect to remote hosts.
           env: [{name: ANSIBLE_SSH_EXECUTABLE}]
@@ -70,14 +81,20 @@ DOCUMENTATION = '''
           - {key: ssh_executable, section: ssh_connection}
           #const: ANSIBLE_SSH_EXECUTABLE
           version_added: "2.2"
+          vars:
+              - name: ansible_ssh_executable
+                version_added: '2.7'
       sftp_executable:
           default: sftp
           description:
-            - This defines the location of the sftp binary. It defaults to `sftp` which will use the first binary available in $PATH.
+            - This defines the location of the sftp binary. It defaults to ``sftp`` which will use the first binary available in $PATH.
           env: [{name: ANSIBLE_SFTP_EXECUTABLE}]
           ini:
           - {key: sftp_executable, section: ssh_connection}
           version_added: "2.6"
+          vars:
+              - name: ansible_sftp_executable
+                version_added: '2.7'
       scp_executable:
           default: scp
           description:
@@ -86,18 +103,42 @@ DOCUMENTATION = '''
           ini:
           - {key: scp_executable, section: ssh_connection}
           version_added: "2.6"
+          vars:
+              - name: ansible_scp_executable
+                version_added: '2.7'
       scp_extra_args:
-          description: Extra exclusive to the 'scp' CLI
+          description: Extra exclusive to the ``scp`` CLI
           vars:
               - name: ansible_scp_extra_args
+          env:
+            - name: ANSIBLE_SCP_EXTRA_ARGS
+              version_added: '2.7'
+          ini:
+            - key: scp_extra_args
+              section: ssh_connection
+              version_added: '2.7'
       sftp_extra_args:
-          description: Extra exclusive to the 'sftp' CLI
+          description: Extra exclusive to the ``sftp`` CLI
           vars:
               - name: ansible_sftp_extra_args
+          env:
+            - name: ANSIBLE_SFTP_EXTRA_ARGS
+              version_added: '2.7'
+          ini:
+            - key: sftp_extra_args
+              section: ssh_connection
+              version_added: '2.7'
       ssh_extra_args:
           description: Extra exclusive to the 'ssh' CLI
           vars:
               - name: ansible_ssh_extra_args
+          env:
+            - name: ANSIBLE_SSH_EXTRA_ARGS
+              version_added: '2.7'
+          ini:
+            - key: ssh_extra_args
+              section: ssh_connection
+              version_added: '2.7'
       retries:
           # constant: ANSIBLE_SSH_RETRIES
           description: Number of attempts to connect.
@@ -110,6 +151,9 @@ DOCUMENTATION = '''
               key: retries
             - section: ssh_connection
               key: retries
+          vars:
+              - name: ansible_ssh_retries
+                version_added: '2.7'
       port:
           description: Remote port to connect to.
           type: int
@@ -176,6 +220,9 @@ DOCUMENTATION = '''
         ini:
           - key: control_path
             section: ssh_connection
+        vars:
+          - name: ansible_control_path
+            version_added: '2.7'
       control_path_dir:
         default: ~/.ansible/cp
         description:
@@ -186,6 +233,9 @@ DOCUMENTATION = '''
         ini:
           - section: ssh_connection
             key: control_path_dir
+        vars:
+          - name: ansible_control_path_dir
+            version_added: '2.7'
       sftp_batch_mode:
         default: 'yes'
         description: 'TODO: write it'
@@ -193,6 +243,9 @@ DOCUMENTATION = '''
         ini:
         - {key: sftp_batch_mode, section: ssh_connection}
         type: bool
+        vars:
+          - name: ansible_sftp_batch_mode
+            version_added: '2.7'
       scp_if_ssh:
         default: smart
         description:
@@ -202,6 +255,9 @@ DOCUMENTATION = '''
         env: [{name: ANSIBLE_SCP_IF_SSH}]
         ini:
         - {key: scp_if_ssh, section: ssh_connection}
+        vars:
+          - name: ansible_scp_if_ssh
+            version_added: '2.7'
       use_tty:
         version_added: '2.5'
         default: 'yes'
@@ -210,7 +266,9 @@ DOCUMENTATION = '''
         ini:
         - {key: usetty, section: ssh_connection}
         type: bool
-        yaml: {key: connection.usetty}
+        vars:
+          - name: ansible_ssh_use_tty
+            version_added: '2.7'
 '''
 
 try:
@@ -346,7 +404,7 @@ class Connection(ConnectionBase):
         display.vvv(u"REMOTE COPY {0} TO {1}".format(from_file, to_file), host=self.inventory_hostname)
         code, stdout, stderr = self._jailhost_command(copycmd)
         if code != 0:
-            raise AnsibleError("failed to move file from %s to %s:\n%s\n%s" % (from_file, to_file, stdout, stderr))
+            raise AnsibleError("failed to copy file from %s to %s:\n%s\n%s" % (from_file, to_file, stdout, stderr))
 
     @contextmanager
     def tempfile(self):
