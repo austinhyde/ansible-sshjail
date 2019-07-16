@@ -79,7 +79,10 @@ This means any commands executed by sshjail roughly translate to `sudo jexec $ja
 An alternative to requiring root access is to use the [`jailme`](http://www.freshports.org/sysutils/jailme) utility.
 `jailme` is "a setuid version of jexec to allow normal users access to FreeBSD jails".
 
-If you want to use `jailme`, you'll need to ensure it's installed on the jailhost, and specify the user to `sudo` as
+Another alternavite to requering root acces is to use the [`iocage`](https://www.freshports.org/sysutils/iocage/) utility.
+`iocage` is a "jail/container manager amalgamating some of the bestfeatures and technologies the FreeBSD operating system has to offer"
+
+If you want to use `jailme` or `iocage`, you'll need to ensure it's installed on the jailhost, and specify the user to `sudo` as
 via `--become-user` on the command line, or `become_user: username` in a play or task. sshjail will prefer to use `jailme`
 if it's installed, whether you are sudoing as root or not.
 
