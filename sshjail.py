@@ -340,6 +340,10 @@ class Connection(ConnectionBase):
 
     def get_jail_connector(self):
         if self.connector is None:
+            code, _, _ = self._jailhost_command("which -s iocage")
+            if code == 0:
+                self.connector = 'iocage'
+                return self.connector
             code, _, _ = self._jailhost_command("which -s jailme")
             if code != 0:
                 self.connector = 'jexec'
