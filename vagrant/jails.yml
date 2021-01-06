@@ -1,0 +1,18 @@
+---
+# jailhost jails to be provisioned
+#
+# lo0 is jailhost loopback interface 127.0.0.1/32
+# lo1 is cloned loopback 127.0.0.0/8, see provisioning jailhost role
+# em0 is NAT interface 10.0.2.0/24, see Vagrantfile
+# em1 is host only 10.0.5.0/24 network, see Vagrantfile JAILHOST_IP
+
+# We'll suppose we want to use these jails for redis
+jails:
+  - name: redis0
+    ipaddr: em0|10.0.2.21,em1|10.0.5.21
+    addhost: redisjails
+    state: present
+  - name: redis1
+    ipaddr: em0|10.0.2.22,em1|10.0.5.22
+    addhost: redisjails
+    state: present

@@ -4,7 +4,7 @@
 
 An Ansible connection plugin for remotely provisioning FreeBSD jails separately from their jailhost.
 
-This works by SSHing to the jail host using the standard Ansible SSH connection, moving any files into the jail directory, and using jexec to execute commands in the scope of the jail.
+This works by SSHing to the jail host using the standard **Ansible** SSH _connection_, moving any files into the jail directory, and using jexec to execute commands in the scope of the jail.
 
 # Requirements
 

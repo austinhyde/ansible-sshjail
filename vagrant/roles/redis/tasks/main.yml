@@ -1,0 +1,7 @@
+---
+
+- name: Install Redis 3.0
+  pkgng: name=databases/redis state=present
+
+- name: enable and start redis service
+  service: name=redis enabled=yes state=started

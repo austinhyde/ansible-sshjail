@@ -24,3 +24,5 @@ var/
 .installed.cfg
 *.egg
 
+.vagrant
+*.retry

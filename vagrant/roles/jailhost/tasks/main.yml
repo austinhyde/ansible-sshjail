@@ -1,0 +1,76 @@
+---
+
+- name: install jail management packages
+  pkgng:
+    name: ezjail,jailme
+    state: present
+
+- name: create jaildir
+  file:
+    name: '{{jaildir}}'
+    state: directory
+
+- name: enable ezjail service
+  service:
+    name: ezjail
+    enabled: yes
+
+- name: install ezjail.conf
+  template:
+    src: ezjail.conf.j2
+    dest: /usr/local/etc/ezjail.conf
+    owner: root
+    group: wheel
+    mode: '0755'
+
+- name: install basejail
+  command: ezjail-admin install
+  args:
+    creates: '{{jaildir}}/basejail'
+
+# note that our default assigned IP is the em0 NAT address   10.0.2.0/24 e.g. em0|10.0.2.21
+# but the jails are addressed by their em1 host-only address 10.0.5.0/24 e.g. em1|10.0.5.21
+- name: create jails
+  command: ezjail-admin create '{{item.name}}' '{{item.ipaddr}}'
+  args:
+    creates: '{{jaildir}}/{{item.name}}'
+  when: item.state|default('present') == 'present'
+  with_items: '{{jails}}'
+
+- name: configure jail DNS
+  command: cp /etc/resolv.conf {{jaildir}}/{{item.name}}/etc
+  args:
+    creates: '{{jaildir}}/{{item.name}}/etc/resolv.conf'
+  with_items: '{{jails}}'
+
+- name: install base jail rc.conf
+  # template only makes the file from the jinja template when it does not already exist
+  template:
+    src: rc.conf.j2
+    dest: '{{jaildir}}/{{item.name}}/etc/rc.conf'
+    owner: root
+    group: wheel
+    mode: '0655'
+  with_items: '{{jails}}'
+
+- name: start jails
+  command: ezjail-admin start '{{item.name}}'
+  with_items: '{{jails}}'
+  ignore_errors: true
+
+# sigh https://github.com/ansible/ansible-modules-extras/pull/131
+- name: bootstrap jail packages
+  command: pkg -j '{{item[0].name|regex_replace('\W','_')}}' install -y '{{item[1]}}'
+  with_nested:
+    - '{{jails}}'
+    - ['ports-mgmt/pkg', 'shells/bash', 'lang/python27']
+
+# this creates the in inventory for subsequent provisioning steps to refer to the jails by their addhost group
+- name: add jails to inventory
+  add_host:
+    name: '{{item.name}}'
+    groups: '{{item.addhost}}'
+    ansible_ssh_host: '{{item.name}}@{{inventory_hostname}}'
+    ansible_python_interpreter: /usr/local/bin/python2.7
+    ansible_connection: sshjail
+  with_items: '{{jails}}'

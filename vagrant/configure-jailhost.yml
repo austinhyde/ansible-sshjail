@@ -1,0 +1,15 @@
+---
+- name: configure jailhost
+  hosts: all
+  gather_facts: no
+  become: yes
+  become_method: sudo
+  vars_files: [jails.yml]
+  roles: [jailhost]
+
+- name: provision redis jails
+  hosts: redisjails # from jails.yml addhost field
+  gather_facts: no
+  become: yes
+  become_method: sudo
+  roles: [redis]
