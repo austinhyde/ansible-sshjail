@@ -89,7 +89,7 @@ Because of limitations of Ansible, this plugin cannot really do things like `sud
 
 # Known Issues
 
-* Fetching files hasn't been tested yet. It may not work.
+- None at the moment
 
 # Contributing
 

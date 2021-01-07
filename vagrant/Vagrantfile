@@ -39,7 +39,8 @@ Vagrant.configure('2') do |config|
     bootstrap.vm.network 'forwarded_port', guest: 22, host: bootstrap_ssh_port, id: 'ssh'
 
     # set dir and file modes to minimize ansible confusion
-    bootstrap.vm.synced_folder '..', '/vagrant', :mount_options => ["dmode=777","fmode=666"]
+    # mount .. so the sshjail.py symlink resolves, although note that sometimes vbox still doesn't respect mount_options here :(
+    bootstrap.vm.synced_folder '..', '/vagrant', mount_options: ['dmode=777', 'fmode=666']
 
     bootstrap.vm.provider 'virtualbox' do |vb|
       vb.memory = 512

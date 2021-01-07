@@ -12,6 +12,9 @@ fi
 # ansible localhost -m yum -a 'name=wget,unzip,zip,python,libselinux-python,git state=present'
 chmod 0600 ~/vagrant_insecure_private_key
 
+# for some reason vbox always mounts /vagrant as root+0755, regardless of what we set on it in the vagrantfile
+chmod 0777 /vagrant /vagrant/vagrant
+
 cd /vagrant/vagrant
 
 ansible --version
