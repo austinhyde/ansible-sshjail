@@ -151,10 +151,9 @@ DOCUMENTATION = '''
             - key: ssh_extra_args
               section: ssh_connection
               version_added: '2.7'
-      retries:
-          # constant: ANSIBLE_SSH_RETRIES
+      reconnection_retries:
           description: Number of attempts to connect.
-          default: 3
+          default: 0
           type: integer
           env:
             - name: ANSIBLE_SSH_RETRIES
@@ -164,8 +163,8 @@ DOCUMENTATION = '''
             - section: ssh_connection
               key: retries
           vars:
-              - name: ansible_ssh_retries
-                version_added: '2.7'
+            - name: ansible_ssh_retries
+              version_added: '2.7'
       port:
           description: Remote port to connect to.
           type: int
