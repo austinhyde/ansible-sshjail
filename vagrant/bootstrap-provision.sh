@@ -5,7 +5,8 @@ JAILHOST=$1
 
 if ! which ansible-playbook 2>/dev/null; then
   sudo apt-get -y update
-  sudo apt-get -y install ansible
+  sudo apt-get -y install python3-pip
+  pip install ansible==2.10.7
   hash -r
 fi
 
@@ -18,6 +19,8 @@ chmod 0777 /vagrant /vagrant/vagrant
 cd /vagrant/vagrant
 
 ansible --version
+
+echo "Provisioning JAILHOST=$JAILHOST"
 
 ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook \
   -i "$JAILHOST," \
