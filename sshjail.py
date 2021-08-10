@@ -168,7 +168,6 @@ DOCUMENTATION = '''
       port:
           description: Remote port to connect to.
           type: int
-          default: 22
           ini:
             - section: defaults
               key: remote_port
