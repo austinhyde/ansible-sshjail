@@ -289,6 +289,17 @@ DOCUMENTATION = '''
         vars:
           - name: ansible_ssh_use_tty
             version_added: '2.7'
+      pkcs11_provider:
+        version_added: '2.12'
+        default: ''
+        description:
+          - PKCS11 SmartCard provider such as opensc, example: /usr/local/lib/opensc-pkcs11.so
+          - Requires sshpass version 1.06+, sshpass must support the -P option.
+        env: [{name: ANSIBLE_PKCS11_PROVIDER}]
+        ini:
+          - {key: pkcs11_provider, section: ssh_connection}
+        vars:
+          - name: ansible_ssh_pkcs11_provider
       timeout:
         default: 10
         description:
@@ -442,9 +453,11 @@ class Connection(ConnectionBase):
         return os.path.join(prefix, normpath[1:])
 
     def _copy_file(self, from_file, to_file, executable='/bin/sh'):
-        plugin = self.become
-        shell = get_shell_plugin(executable=executable)
-        copycmd = plugin.build_become_command(' '.join(['cp', from_file, to_file]), shell)
+        copycmd = ' '.join(['cp', from_file, to_file])
+        if self._play_context.become:
+        	plugin = self.become
+        	shell = get_shell_plugin(executable=executable)
+        	copycmd = plugin.build_become_command(copycmd, shell)
 
         display.vvv(u"REMOTE COPY {0} TO {1}".format(from_file, to_file), host=self.inventory_hostname)
         code, stdout, stderr = self._jailhost_command(copycmd)
