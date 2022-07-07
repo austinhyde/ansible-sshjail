@@ -24,6 +24,7 @@ DOCUMENTATION = '''
           description: Hostname/ip to connect to.
           default: inventory_hostname
           vars:
+               - name: inventory_hostname
                - name: ansible_host
                - name: ansible_ssh_host
       host_key_checking:
