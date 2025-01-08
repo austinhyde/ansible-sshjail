@@ -1,9 +1,11 @@
-# Copyright (c) 2015-2018, Austin Hyde (@austinhyde)
+# Copyright (c) 2015-2021, Austin Hyde (@austinhyde)
 from __future__ import (absolute_import, division, print_function)
 
 import os
+from packaging import version
 import pipes
 
+from ansible import __version__ as ansible_version
 from ansible.errors import AnsibleError
 from ansible.plugins.connection.ssh import Connection as SSHConnection
 from ansible.module_utils._text import to_text
@@ -11,6 +13,8 @@ from ansible.plugins.loader import get_shell_plugin
 from contextlib import contextmanager
 
 __metaclass__ = type
+
+MIN_ANSIBLE_VERSION = '2.11.3'
 
 DOCUMENTATION = '''
     connection: sshjail
@@ -359,6 +363,8 @@ class Connection(ConnectionBase):
         self.jpath = None
         self.connector = None
 
+        if version.parse(ansible_version) < version.parse(MIN_ANSIBLE_VERSION):
+            raise AnsibleError("sshjail needs at least ansible version " + MIN_ANSIBLE_VERSION)
         # logging.warning(self._play_context.connection)
 
     def match_jail(self):
