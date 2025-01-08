@@ -2,9 +2,8 @@
 from __future__ import (absolute_import, division, print_function)
 
 import os
-from packaging import version
-import pipes
 import shlex
+from packaging import version
 
 from ansible import __version__ as ansible_version
 from ansible.errors import AnsibleError
@@ -470,7 +469,7 @@ class Connection(ConnectionBase):
             cmd = self._strip_sudo(executable, cmd)
 
         self.set_option('host', self.host)
-        cmd = ' '.join([executable, '-c', pipes.quote(cmd)])
+        cmd = ' '.join([executable, '-c', shlex.quote(cmd)])
         if slpcmd:
             cmd = '%s %s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd, '&& sleep 0')
         else:
