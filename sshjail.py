@@ -469,6 +469,7 @@ class Connection(ConnectionBase):
         if 'sudo' in cmd:
             cmd = self._strip_sudo(executable, cmd)
 
+        self.set_option('host', self.host)
         cmd = ' '.join([executable, '-c', pipes.quote(cmd)])
         if slpcmd:
             cmd = '%s %s %s %s' % (self.get_jail_connector(), self.get_jail_id(), cmd, '&& sleep 0')
