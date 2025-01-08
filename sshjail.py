@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2021, Austin Hyde (@austinhyde)
+# Copyright (c) 2015-2025, Austin Hyde (@austinhyde)
 from __future__ import (absolute_import, division, print_function)
 
 import os
