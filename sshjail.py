@@ -8,13 +8,17 @@ from packaging import version
 from ansible import __version__ as ansible_version
 from ansible.errors import AnsibleError
 from ansible.plugins.connection.ssh import Connection as SSHConnection
-from ansible.module_utils._text import to_text
+from ansible.module_utils.common.text.converters import to_text
 from ansible.plugins.loader import get_shell_plugin
 from contextlib import contextmanager
 
 __metaclass__ = type
 
 MIN_ANSIBLE_VERSION = '2.11.3'
+
+# become commands that must be stripped before running inside the jail,
+# as the jail itself usually has neither installed
+BECOME_EXES = ('sudo', 'doas')
 
 DOCUMENTATION = '''
     connection: sshjail
@@ -422,7 +426,7 @@ class Connection(ConnectionBase):
 
         # to do this, we peel back successive command invocations
         words = shlex.split(cmd)
-        while words[0] == executable or words[0] == 'sudo':
+        while words[0] == executable or words[0] in BECOME_EXES:
             cmd = words[-1]
             words = shlex.split(cmd)
 
@@ -454,7 +458,7 @@ class Connection(ConnectionBase):
             slpcmd = True
             cmd = self._strip_sleep(cmd)
 
-        if 'sudo' in cmd:
+        if any(exe in cmd for exe in BECOME_EXES):
             cmd = self._strip_sudo(executable, cmd)
 
         self.set_option('host', self.host)

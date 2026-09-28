@@ -19,7 +19,7 @@ Jailhost:
 * At least one configured jail
 * Python 2.7
 * SSH
-* sudo
+* sudo or doas
 
 Target jail:
 
@@ -71,7 +71,8 @@ Adding these hosts dynamically, like after freshly creating them via Ansible, or
 ## A note about privileges
 
 By default in FreeBSD, only root can enter jails. This means that when invoking `ansible` or `ansible-playbook`,
-you need to specify `--become`, and in a playbook, use `become: yes`/`become_method: sudo`. If sudo requires a password
+you need to specify `--become`, and in a playbook, use `become: yes`/`become_method: sudo`
+(or `become_method: community.general.doas`). If sudo requires a password
 (shame on you if not, unless it's vagrant!), you'll need `--ask-become-pass` as well.
 
 This means any commands executed by sshjail roughly translate to `sudo jexec $jailName $command`.
